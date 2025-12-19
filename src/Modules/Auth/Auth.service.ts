@@ -1,158 +1,39 @@
 import { randomInt } from "crypto";
 import { ENV } from "@/config";
+import { userRoles } from "@/constants";
 import { sendOTPEmail } from "@/helper/emailHelper/sendOTPEmail";
 import { sendPasswordResetEmail } from "@/helper/emailHelper/sendPasswordResetEmail";
 import { sendVerificationEmail } from "@/helper/emailHelper/sendVerificationEmail";
 import { AppError } from "@/helper/errorHelper/appError";
 import { generateToken, verifyToken } from "@/helper/jwtHelper";
 import { performDBTransaction } from "@/Utils/performDBTransaction";
-import { CustomerRegisterPayload } from "../Customer/Customer.interface";
-import { Customer } from "../Customer/Customer.model";
-import { DeliveryMan } from "../DeliveryMan/DeliveryMan.model"; // add near other imports
 import { EmailVerification } from "../EmailVerification/EmailVerification.model";
-import { userRoles } from "../User/User.constant";
+import { IUser } from "../User/User.interface";
 import { User } from "../User/User.model";
-import { Vendor } from "../Vendor/Vendor.model"; // add import near other imports
-
 import { hashPassword } from "./../../helper/password.helper";
 
 //! Register Customer Service
-const registerCustomerToDB = async (payLoad: CustomerRegisterPayload) => {
+const registerUserToDB = async (payLoad: IUser) => {
   const { name, email, password } = payLoad;
 
+  // Check if user already exists
+  const isUserExists = await User.findOne({ email });
+  if (isUserExists) {
+    throw new AppError("Customer already exists", 400);
+  }
+
+  // Hash the password
   const hashedPassword = await hashPassword(password);
 
-  // Perform transaction for DB operations only
-  const { user, customer } = await performDBTransaction(async (session) => {
-    const isCustomerExists = await Customer.findOne({ email }).session(session);
-    if (isCustomerExists) {
-      throw new AppError("Customer already exists", 400);
-    }
-
-    // Create user
-    const [user] = await User.create(
-      [
-        {
-          name,
-          email,
-          password: hashedPassword,
-          role: userRoles.Customer,
-        },
-      ],
-      { session },
-    );
-
-    // Create customer
-    const [customer] = await Customer.create(
-      [
-        {
-          name,
-          email,
-          user_id: user._id,
-        },
-      ],
-      { session },
-    );
-
-    return { user, customer };
-  });
-
-  // Generate Magic Link JWT
-  const magicToken = generateToken(
-    {
-      id: user._id,
-      email: user.email,
-    },
-    ENV.EMAIL_VERIFICATION_SECRET,
-    "15min",
-  );
-
-  await sendVerificationEmail(email, magicToken);
-
-  return customer;
-};
-
-//! Create Vendor Service
-const createVendorToDB = async (payLoad: {
-  name: string;
-  email: string;
-  password: string;
-  phone: string | number;
-  store_name?: string;
-  paymentMethod?: any;
-  address?: any;
-  verification?: any;
-}) => {
-  const {
+  // Create the user
+  const user = await User.create({
     name,
     email,
-    password,
-    phone,
-    store_name,
-    paymentMethod,
-    address,
-    verification,
-  } = payLoad;
-
-  const hashedPassword = await hashPassword(password);
-
-  const { user, vendor } = await performDBTransaction(async (session) => {
-    // If user exists, ensure not already vendor and upgrade role
-    let user = await User.findOne({ email }).session(session);
-
-    if (user) {
-      if (user.role === userRoles.Vendor) {
-        throw new AppError("Vendor already exists", 400);
-      }
-      // upgrade existing customer to vendor
-      user.role = userRoles.Vendor;
-      user.name = name || user.name;
-      user.password = hashedPassword;
-      await user.save({ session });
-    } else {
-      // create a new user as vendor
-      [user] = await User.create(
-        [
-          {
-            name,
-            email,
-            password: hashedPassword,
-            role: userRoles.Vendor,
-          },
-        ],
-        { session },
-      );
-    }
-
-    // Ensure no vendor record already exists for this user
-    const existingVendor = await Vendor.findOne({ user_id: user._id }).session(
-      session,
-    );
-    if (existingVendor) {
-      throw new AppError("Vendor already exists", 400);
-    }
-
-    // create vendor document
-    const [vendor] = await Vendor.create(
-      [
-        {
-          user_id: user._id,
-          name,
-          phone,
-          email,
-          store_name: store_name || "",
-          paymentMethod: paymentMethod || {},
-          address: address || {},
-          verification: verification || {},
-        },
-      ],
-      { session },
-    );
-
-    return { user, vendor };
+    password: hashedPassword,
+    role: userRoles.User, // assuming userRoles.User is the correct enum value
   });
 
-  // Generate Magic Link JWT
+  // Generate Magic Link JWT for email verification
   const magicToken = generateToken(
     {
       id: user._id,
@@ -162,106 +43,14 @@ const createVendorToDB = async (payLoad: {
     "15min",
   );
 
+  // Send verification email
   await sendVerificationEmail(email, magicToken);
 
-  return vendor;
+  return {
+    user,
+    hasVerificationEmailBeenSent: true,
+  };
 };
-
-//! Create DeliveryMan Service
-const createDeliveryManToDB = async (payLoad: {
-  name: string;
-  email: string;
-  password: string;
-  phone: string | number;
-  vehicleType: string;
-  address?: any;
-  location?: { latitude: number; longitude: number };
-  verification?: any;
-}) => {
-  const {
-    name,
-    email,
-    password,
-    phone,
-    vehicleType,
-    address,
-    location,
-    verification,
-  } = payLoad;
-
-  const hashedPassword = await hashPassword(password);
-
-  const { user, deliveryMan } = await performDBTransaction(async (session) => {
-    // find existing user
-    let user = await User.findOne({ email }).session(session);
-
-    if (user) {
-      if (user.role === userRoles.Delivery_Man) {
-        throw new AppError("DeliveryMan already exists", 400);
-      }
-      // upgrade role and update password/name
-      user.role = userRoles.Delivery_Man;
-      user.name = name || user.name;
-      user.password = hashedPassword;
-      await user.save({ session });
-    } else {
-      // create new user as deliveryman
-      [user] = await User.create(
-        [
-          {
-            name,
-            email,
-            password: hashedPassword,
-            role: userRoles.Delivery_Man,
-          },
-        ],
-        { session },
-      );
-    }
-
-    // ensure no delivery man document exists
-    const existing = await DeliveryMan.findOne({ userId: user._id }).session(
-      session,
-    );
-
-    if (existing) {
-      throw new AppError("DeliveryMan already exists", 400);
-    }
-
-    // create delivery man document
-    const [deliveryMan] = await DeliveryMan.create(
-      [
-        {
-          userId: user._id,
-          name,
-          phone,
-          address: address || {},
-          location: location || undefined,
-          vehicleType,
-          verification: verification || {},
-        },
-      ],
-      { session },
-    );
-
-    return { user, deliveryMan };
-  });
-
-  // Generate Magic Link JWT
-  const magicToken = generateToken(
-    {
-      id: user._id,
-      email: user.email,
-    },
-    ENV.EMAIL_VERIFICATION_SECRET,
-    "15min",
-  );
-
-  await sendVerificationEmail(email, magicToken);
-
-  return deliveryMan;
-};
-
 //! Login Service
 const loginToDB = async (payLoad: { email: string; password: string }) => {
   const { email, password } = payLoad;
@@ -489,12 +278,8 @@ const forgotPassword = async (email: string) => {
   // Find user by email
   const user = await User.findOne({ email, isActive: true });
 
-  // Always return success to prevent email enumeration
   if (!user) {
-    return {
-      message:
-        "If an account exists with this email, a password reset link has been sent.",
-    };
+    throw new AppError("User not found", 404);
   }
 
   // Generate password reset token
@@ -512,8 +297,7 @@ const forgotPassword = async (email: string) => {
   await sendPasswordResetEmail(email, resetToken);
 
   return {
-    message:
-      "If an account exists with this email, a password reset link has been sent.",
+    message: "password reset link has been sent.",
   };
 };
 
@@ -555,7 +339,7 @@ const resetPassword = async (token: string, newPassword: string) => {
 };
 
 export const AuthService = {
-  registerCustomerToDB,
+  registerUserToDB,
   loginToDB,
   verifyEmail,
   sendOTP,
@@ -563,6 +347,4 @@ export const AuthService = {
   refreshAccessToken,
   forgotPassword,
   resetPassword,
-  createVendorToDB,
-  createDeliveryManToDB, // added
 };

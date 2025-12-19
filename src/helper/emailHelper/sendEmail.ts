@@ -9,7 +9,7 @@ interface EmailOptions {
 
 export const sendEmail = async (options: EmailOptions) => {
   await transporter.sendMail({
-    from: `"Foshol Bazar" <${ENV.EMAIL}>`,
+    from: `OneClick <${ENV.EMAIL}>`,
     to: options.to,
     subject: options.subject,
     html: options.html,

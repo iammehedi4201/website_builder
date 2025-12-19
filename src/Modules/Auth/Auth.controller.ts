@@ -3,26 +3,17 @@ import CatchAsync from "../../Utils/CatchAsync";
 import sendResponse from "../../Utils/SendResponse";
 import { AuthService } from "./Auth.service";
 
-// const LoginUser = CatchAsync(async (req, res) => {
-//   const result = await AuthService.LoginUserToDb(req.body);
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: 200,
-//     data: result,
-//     message: "User Logged In Successfully",
-//   });
-// });
-
-//! Register Customer Controller
-const registerCustomerToDB = CatchAsync(async (req, res) => {
-  const result = await AuthService.registerCustomerToDB(req.body);
+//! Register User Controller
+const registerUserToDB = CatchAsync(async (req, res) => {
+  const { user, hasVerificationEmailBeenSent } =
+    await AuthService.registerUserToDB(req.body);
 
   // 2️⃣ Send response with access token + customer info
   sendResponse(res, {
     success: true,
     statusCode: 201,
     message: "Customer registered successfully",
-    data: result,
+    data: { user, hasVerificationEmailBeenSent },
   });
 });
 
@@ -168,39 +159,13 @@ const resetPassword = CatchAsync(async (req, res) => {
   });
 });
 
-//! Register Vendor Controller
-const registerVendorToDB = CatchAsync(async (req, res) => {
-  const result = await AuthService.createVendorToDB(req.body);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: 201,
-    message: "Vendor registered successfully",
-    data: result,
-  });
-});
-
-//! Register DeliveryMan Controller
-const registerDeliveryManToDB = CatchAsync(async (req, res) => {
-  const result = await AuthService.createDeliveryManToDB(req.body);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: 201,
-    message: "Delivery man registered successfully",
-    data: result,
-  });
-});
-
 export const AuthController = {
+  registerUserToDB,
   loginToDB,
-  registerCustomerToDB,
   verifyEmail,
   sendOTP,
   verifyOTPCode,
   refreshAccessToken,
   forgotPassword,
   resetPassword,
-  registerVendorToDB,
-  registerDeliveryManToDB,
 };

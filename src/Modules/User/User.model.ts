@@ -1,6 +1,6 @@
+import { UserRoles } from "@/constants";
 import { comparePassword } from "@/helper/password.helper";
 import { model, Schema } from "mongoose";
-import { userRoles, UserRoles } from "./User.constant";
 import { IUser, UserModel } from "./User.interface";
 
 const UserSchema = new Schema<IUser, UserModel>(
@@ -22,7 +22,7 @@ const UserSchema = new Schema<IUser, UserModel>(
         values: UserRoles,
         message: "Please select correct role",
       },
-      default: "Customer",
+      default: "User",
     },
     password: {
       type: String,

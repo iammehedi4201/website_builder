@@ -9,7 +9,6 @@ export const moduleRoute = [
     path: "/auth",
     route: Authroutes,
   },
-
   {
     path: "/users",
     route: UserRoutes,

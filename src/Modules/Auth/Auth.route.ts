@@ -2,9 +2,7 @@ import ValidateRequest from "@/middlewares/common/ValidationRequest";
 import { Router } from "express";
 import { AuthController } from "./Auth.controller";
 import {
-  createCustomerValidation,
-  createDeliveryManValidation,
-  createVendorValidation,
+  createUserValidation,
   forgotPasswordSchema,
   loginSchema,
   refreshTokenSchema,
@@ -14,25 +12,11 @@ import {
 
 const router = Router();
 
-//! Create New Customer
+//! Create New User
 router.post(
-  "/register-customer",
-  ValidateRequest(createCustomerValidation),
-  AuthController.registerCustomerToDB,
-);
-
-//! Create Vendor
-router.post(
-  "/register-vendor",
-  ValidateRequest(createVendorValidation),
-  AuthController.registerVendorToDB,
-);
-
-//! Create Delivery Man
-router.post(
-  "/register-deliveryman",
-  ValidateRequest(createDeliveryManValidation),
-  AuthController.registerDeliveryManToDB,
+  "/register-user",
+  ValidateRequest(createUserValidation),
+  AuthController.registerUserToDB,
 );
 
 //! Login User
