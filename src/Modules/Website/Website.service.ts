@@ -1,8 +1,10 @@
 import { AppError } from "@/helper/errorHelper/appError";
 import type { Types } from "mongoose";
+import { SectionContent } from "../SectionContent/SectionContent.model";
 import { Webpage } from "../Webpage/Webpage.model";
 import { WebpageService } from "../Webpage/Webpage.service";
 import { WebpageSection } from "../WebpageSection/WebpageSection.model";
+import { WebsiteTheme } from "../WebsiteTheme/WebsiteTheme.model";
 import { WEBSITE_SEARCHABLE_FIELDS } from "./Website.constant";
 import {
   ICreateWebsite,
@@ -304,8 +306,10 @@ const DeleteWebsite = async (websiteId: string, userId: string) => {
   website.isDeleted = true;
   await website.save();
 
-  // TODO: Cascade delete to pages, sections, content, and theme
-  // This will be implemented when other modules are created
+  await Webpage.deleteMany({ websiteId });
+  await WebpageSection.deleteMany({ websiteId });
+  await SectionContent.deleteMany({ websiteId });
+  await WebsiteTheme.deleteMany({ websiteId });
 
   return { message: "Website deleted successfully" };
 };
