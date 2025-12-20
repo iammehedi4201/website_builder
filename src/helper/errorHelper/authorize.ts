@@ -1,3 +1,4 @@
+import { ENV } from "@/config";
 import { AppError } from "@/helper/errorHelper/appError";
 import { verifyToken } from "@/helper/jwtHelper";
 import { IJwtPayload, TUserRoles } from "@/Modules/User/User.interface";
@@ -8,16 +9,26 @@ import httpStatus from "http-status";
 export const authorize = (...allowedRoles: TUserRoles[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = req.headers.authorization;
-      if (!token)
+      const authHeader = req.headers.authorization;
+
+      console.log("authHeader", authHeader);
+
+      if (!authHeader)
         throw new AppError("Token not found", httpStatus.UNAUTHORIZED);
+
+      // Extract token from "Bearer <token>" format
+      const token = authHeader.startsWith("Bearer ")
+        ? authHeader.substring(7) // Remove "Bearer " prefix
+        : authHeader;
+
+      console.log("extracted token", token);
 
       if (!token)
         throw new AppError("Token format invalid", httpStatus.UNAUTHORIZED);
 
       const decoded = verifyToken(
         token,
-        process.env.JWT_ACCESS_SECRET!,
+        ENV.JWT_ACCESS_SECRET_KEY,
       ) as IJwtPayload;
 
       const user = await User.findOne({ email: decoded.email });

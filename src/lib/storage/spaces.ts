@@ -34,7 +34,7 @@ const getS3Client = (): S3Client => {
 // Types
 // ====================
 
-type UploadBody = Buffer | Uint8Array | Blob | string | ReadableStream<any>;
+type UploadBody = Buffer | Uint8Array | Blob | string | ReadableStream;
 
 type UpdateResult = {
   upload: PutObjectCommandOutput;

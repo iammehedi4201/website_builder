@@ -70,7 +70,7 @@ const loginToDB = async (payLoad: { email: string; password: string }) => {
   // Generate tokens AFTER transaction (doesn't need DB lock)
   const payload = { id: user._id, email: user.email, role: user.role };
 
-  const accessToken = generateToken(payload, ENV.JWT_ACCESS_SECRET_KEY, "15m");
+  const accessToken = generateToken(payload, ENV.JWT_ACCESS_SECRET_KEY, "7d");
   const refreshToken = generateToken(payload, ENV.JWT_REFRESH_SECRET_KEY, "7d");
 
   return {

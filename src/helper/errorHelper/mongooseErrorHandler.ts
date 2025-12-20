@@ -13,6 +13,8 @@ export const handleMongooseValidationError = (
     }),
   );
 
+  console.log("errorSources from mongoose validation error", errorSources);
+
   return new ValidationError("Mongoose validation failed", errorSources);
 };
 

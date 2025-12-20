@@ -4,10 +4,11 @@ interface IResponse<T> {
   success: boolean;
   statusCode: number;
   message: string;
-  mate?: {
+  meta?: {
     page: number;
     limit: number;
     total: number;
+    totalPages: number;
   };
   data: T;
 }
