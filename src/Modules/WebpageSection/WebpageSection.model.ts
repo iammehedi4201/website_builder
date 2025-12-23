@@ -3,10 +3,6 @@ import { is } from "zod/v4/locales";
 import { StatusEnum } from "../Website/Website.constant";
 import { IWebpageSection } from "./WebpageSection.interface";
 
-/**
- * Webpage Section Schema
- * MongoDB schema definition for WebpageSection entity
- */
 const webpageSectionSchema = new Schema<IWebpageSection>(
   {
     webpageId: {

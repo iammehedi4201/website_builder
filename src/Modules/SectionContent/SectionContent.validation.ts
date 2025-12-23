@@ -21,7 +21,10 @@ const mediaSchema = z.object({
 const buttonSchema = z.object({
   text: z.string().min(1, "Button text is required"),
   url: z.string().min(1, "Button URL is required"),
-  style: z.nativeEnum(ButtonStyleEnum).default(ButtonStyleEnum.PRIMARY),
+  style: z.preprocess(
+    (val) => (typeof val === "string" ? val.toLowerCase() : val),
+    z.nativeEnum(ButtonStyleEnum).default(ButtonStyleEnum.PRIMARY),
+  ),
 });
 
 // Create/Update Section Content Validation (Upsert)
@@ -38,10 +41,10 @@ export const upsertContentSchema = z.object({
       .trim()
       .optional(),
     description: z.string().trim().optional(),
-    media: z.array(mediaSchema).optional(),
+    media: z.string().trim().optional(),
     buttons: z.array(buttonSchema).optional(),
     listItems: z.array(z.string()).optional(),
-    customData: z.record(z.any()).optional(),
+    customData: z.record(z.string(), z.any()).optional(),
     status: z.nativeEnum(StatusEnum).optional(),
   }),
   params: z.object({
@@ -65,7 +68,7 @@ export const updateContentByIdSchema = z.object({
     media: z.array(mediaSchema).optional(),
     buttons: z.array(buttonSchema).optional(),
     listItems: z.array(z.string()).optional(),
-    customData: z.record(z.any()).optional(),
+    customData: z.record(z.string(), z.any()).optional(),
     status: z.nativeEnum(StatusEnum).optional(),
   }),
   params: z.object({

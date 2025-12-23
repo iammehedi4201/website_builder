@@ -9,9 +9,7 @@ import { StatusEnum } from "../Website/Website.constant";
 export const createWebpageSchema = z.object({
   body: z.object({
     name: z
-      .string({
-        required_error: "Page name is required",
-      })
+      .string()
       .min(1, "Page name cannot be empty")
       .max(100, "Page name cannot exceed 100 characters")
       .trim(),
@@ -38,12 +36,7 @@ export const updateWebpageSchema = z.object({
 // Reorder Page Validation
 export const reorderPageSchema = z.object({
   body: z.object({
-    newOrder: z
-      .number({
-        required_error: "New order is required",
-      })
-      .int()
-      .min(0, "Order must be a positive number"),
+    newOrder: z.number().int().min(0, "Order must be a positive number"),
   }),
 });
 

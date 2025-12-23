@@ -10,10 +10,6 @@ import { app } from "./server";
 // Connect MongoDB before starting the server
 connectDB();
 
-// app.get("/", (req: Request, res: Response) => {
-//   res.status(200).json({ data: `Hello, world! - ${PORT}` });
-// });
-
 //application routes
 app.use("/api", routes);
 

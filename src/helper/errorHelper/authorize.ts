@@ -50,6 +50,8 @@ export const authorize = (...allowedRoles: TUserRoles[]) => {
         );
       }
 
+      console.log("decoded ------------>", decoded);
+
       req.user = decoded;
       next();
     } catch (err) {

@@ -105,11 +105,24 @@ const GetWebsites = async (
   const sort: any = {};
   sort[sortBy] = sortOrder === "asc" ? 1 : -1;
 
-  // Execute query
+  // Execute query with deep populate (pages -> sections -> content)
   const websites = await Website.find(filter)
     .sort(sort)
     .skip(skip)
     .limit(limit)
+    .populate({
+      path: "pages",
+      match: { isDeleted: false },
+      options: { sort: { order: 1 } },
+      populate: {
+        path: "sections",
+        match: { isDeleted: false },
+        options: { sort: { order: 1 } },
+        populate: {
+          path: "content",
+        },
+      },
+    })
     .lean();
 
   // Get total count
@@ -133,6 +146,9 @@ const GetWebsites = async (
  * @returns Website with populated pages
  */
 const GetWebsiteById = async (websiteId: string, userId: string) => {
+  console.log("website Id", websiteId);
+  console.log("user Id", userId);
+
   const website = await Website.findOne({
     _id: websiteId,
     userId,
@@ -145,6 +161,9 @@ const GetWebsiteById = async (websiteId: string, userId: string) => {
       path: "sections",
       match: { isDeleted: false },
       options: { sort: { order: 1 } },
+      populate: {
+        path: "content",
+      },
     },
   });
 
@@ -174,6 +193,9 @@ const GetWebsiteBySlug = async (slug: string, userId: string) => {
       path: "sections",
       match: { isDeleted: false },
       options: { sort: { order: 1 } },
+      populate: {
+        path: "content",
+      },
     },
   });
 
@@ -197,6 +219,10 @@ const UpdateWebsite = async (
   payload: IUpdateWebsite,
 ) => {
   // Check if website exists and user owns it
+
+  console.log("Website Id --------->", websiteId);
+  console.log("User Id --------->", userId);
+
   const website = await Website.findOne({
     _id: websiteId,
     userId,
