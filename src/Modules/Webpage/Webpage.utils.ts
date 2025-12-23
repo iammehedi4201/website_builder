@@ -40,10 +40,10 @@ export const getNextPageOrder = async (websiteId: string): Promise<number> => {
     .limit(1);
 
   if (!lastPage) {
-    return 10; // Start from 10 to allow insertion
+    return 1; // Start from 1
   }
 
-  return lastPage.order + 10;
+  return lastPage.order + 1;
 };
 
 /**

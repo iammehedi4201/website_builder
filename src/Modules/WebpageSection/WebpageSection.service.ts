@@ -175,6 +175,37 @@ const UpdateSection = async (
     throw new AppError("Section not found", 404);
   }
 
+  // If order is being updated, handle shifting
+  if (payload.order !== undefined && payload.order !== section.order) {
+    const oldOrder = section.order;
+    const newOrder = payload.order;
+    const pageId = section.webpageId._id;
+
+    if (newOrder > oldOrder) {
+      // Moving down: decrement orders between old and new position
+      await WebpageSection.updateMany(
+        {
+          webpageId: pageId,
+          order: { $gt: oldOrder, $lte: newOrder },
+          _id: { $ne: sectionId },
+          isDeleted: false,
+        },
+        { $inc: { order: -1 } },
+      );
+    } else if (newOrder < oldOrder) {
+      // Moving up: increment orders between new and old position
+      await WebpageSection.updateMany(
+        {
+          webpageId: pageId,
+          order: { $gte: newOrder, $lt: oldOrder },
+          _id: { $ne: sectionId },
+          isDeleted: false,
+        },
+        { $inc: { order: 1 } },
+      );
+    }
+  }
+
   // Update section
   const updatedSection = await WebpageSection.findByIdAndUpdate(
     sectionId,
@@ -217,7 +248,18 @@ const DeleteSection = async (sectionId: string, userId: string) => {
 
   // Soft delete
   section.isDeleted = true;
+  const deletedOrder = section.order;
   await section.save();
+
+  // Automatic reorder: Decrement order of all sections that were after the deleted section
+  await WebpageSection.updateMany(
+    {
+      webpageId: section.webpageId._id,
+      order: { $gt: deletedOrder },
+      isDeleted: false,
+    },
+    { $inc: { order: -1 } },
+  );
 
   return { message: "Section deleted successfully" };
 };
@@ -234,53 +276,7 @@ const ReorderSection = async (
   userId: string,
   newOrder: number,
 ) => {
-  // Get section and verify ownership
-  const section = await WebpageSection.findOne({
-    _id: sectionId,
-    isDeleted: false,
-  }).populate({
-    path: "webpageId",
-    populate: {
-      path: "websiteId",
-      match: { userId, isDeleted: false },
-    },
-  });
-
-  if (!section || !section.webpageId || !(section.webpageId as any).websiteId) {
-    throw new AppError("Section not found", 404);
-  }
-
-  const oldOrder = section.order;
-  const pageId = section.webpageId._id;
-
-  // Update the section order
-  section.order = newOrder;
-  await section.save();
-
-  // Adjust other sections' orders
-  if (newOrder > oldOrder) {
-    await WebpageSection.updateMany(
-      {
-        webpageId: pageId,
-        order: { $gt: oldOrder, $lte: newOrder },
-        _id: { $ne: sectionId },
-        isDeleted: false,
-      },
-      { $inc: { order: -1 } },
-    );
-  } else if (newOrder < oldOrder) {
-    await WebpageSection.updateMany(
-      {
-        webpageId: pageId,
-        order: { $gte: newOrder, $lt: oldOrder },
-        _id: { $ne: sectionId },
-        isDeleted: false,
-      },
-      { $inc: { order: 1 } },
-    );
-  }
-
-  return section;
+  return UpdateSection(sectionId, userId, { order: newOrder });
 };
 
 /**

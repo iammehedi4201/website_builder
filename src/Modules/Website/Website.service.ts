@@ -220,9 +220,6 @@ const UpdateWebsite = async (
 ) => {
   // Check if website exists and user owns it
 
-  console.log("Website Id --------->", websiteId);
-  console.log("User Id --------->", userId);
-
   const website = await Website.findOne({
     _id: websiteId,
     userId,

@@ -6,6 +6,7 @@ import { StatusEnum } from "../Website/Website.constant";
  * Defines the structure of a Webpage document
  */
 export interface IWebpage extends Document {
+  _id: Types.ObjectId;
   websiteId: Types.ObjectId;
   name: string;
   slug: string;

@@ -48,7 +48,7 @@ const CreateDefaultPages = async (
 
   // Create default sections for each page
   await Promise.all(
-    pages.map((page) =>
+    pages.map((page: IWebpage) =>
       WebpageSectionService.CreateDefaultSections(
         page._id.toString(),
         page.name,
@@ -178,6 +178,37 @@ const UpdatePage = async (
     Object.assign(payload, { slug: newSlug });
   }
 
+  // If order is being updated, handle shifting
+  if (payload.order !== undefined && payload.order !== page.order) {
+    const oldOrder = page.order;
+    const newOrder = payload.order;
+    const websiteId = page.websiteId._id;
+
+    if (newOrder > oldOrder) {
+      // Moving down: decrement orders between old and new position
+      await Webpage.updateMany(
+        {
+          websiteId,
+          order: { $gt: oldOrder, $lte: newOrder },
+          _id: { $ne: pageId },
+          isDeleted: false,
+        },
+        { $inc: { order: -1 } },
+      );
+    } else if (newOrder < oldOrder) {
+      // Moving up: increment orders between new and old position
+      await Webpage.updateMany(
+        {
+          websiteId,
+          order: { $gte: newOrder, $lt: oldOrder },
+          _id: { $ne: pageId },
+          isDeleted: false,
+        },
+        { $inc: { order: 1 } },
+      );
+    }
+  }
+
   // Update page
   const updatedPage = await Webpage.findByIdAndUpdate(pageId, payload, {
     new: true,
@@ -218,7 +249,18 @@ const DeletePage = async (pageId: string, userId: string) => {
 
   // Soft delete
   page.isDeleted = true;
+  const deletedOrder = page.order;
   await page.save();
+
+  // Automatic reorder: Decrement order of all pages that were after the deleted page
+  await Webpage.updateMany(
+    {
+      websiteId: page.websiteId._id,
+      order: { $gt: deletedOrder },
+      isDeleted: false,
+    },
+    { $inc: { order: -1 } },
+  );
 
   // TODO: Cascade delete to sections and content
   // This will be implemented when other modules are created
@@ -238,52 +280,7 @@ const ReorderPage = async (
   userId: string,
   newOrder: number,
 ) => {
-  // Get page and verify ownership
-  const page = await Webpage.findOne({
-    _id: pageId,
-    isDeleted: false,
-  }).populate({
-    path: "websiteId",
-    match: { userId, isDeleted: false },
-  });
-
-  if (!page || !page.websiteId) {
-    throw new AppError("Page not found", 404);
-  }
-
-  const oldOrder = page.order;
-  const websiteId = page.websiteId._id;
-
-  // Update the page order
-  page.order = newOrder;
-  await page.save();
-
-  // Adjust other pages' orders
-  if (newOrder > oldOrder) {
-    // Moving down: decrement orders between old and new position
-    await Webpage.updateMany(
-      {
-        websiteId,
-        order: { $gt: oldOrder, $lte: newOrder },
-        _id: { $ne: pageId },
-        isDeleted: false,
-      },
-      { $inc: { order: -1 } },
-    );
-  } else if (newOrder < oldOrder) {
-    // Moving up: increment orders between new and old position
-    await Webpage.updateMany(
-      {
-        websiteId,
-        order: { $gte: newOrder, $lt: oldOrder },
-        _id: { $ne: pageId },
-        isDeleted: false,
-      },
-      { $inc: { order: 1 } },
-    );
-  }
-
-  return page;
+  return UpdatePage(pageId, userId, { order: newOrder });
 };
 
 /**

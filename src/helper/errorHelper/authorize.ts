@@ -11,8 +11,6 @@ export const authorize = (...allowedRoles: TUserRoles[]) => {
     try {
       const authHeader = req.headers.authorization;
 
-      console.log("authHeader", authHeader);
-
       if (!authHeader)
         throw new AppError("Token not found", httpStatus.UNAUTHORIZED);
 
@@ -20,8 +18,6 @@ export const authorize = (...allowedRoles: TUserRoles[]) => {
       const token = authHeader.startsWith("Bearer ")
         ? authHeader.substring(7) // Remove "Bearer " prefix
         : authHeader;
-
-      console.log("extracted token", token);
 
       if (!token)
         throw new AppError("Token format invalid", httpStatus.UNAUTHORIZED);
@@ -49,8 +45,6 @@ export const authorize = (...allowedRoles: TUserRoles[]) => {
           httpStatus.FORBIDDEN,
         );
       }
-
-      console.log("decoded ------------>", decoded);
 
       req.user = decoded;
       next();

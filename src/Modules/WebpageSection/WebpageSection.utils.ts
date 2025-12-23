@@ -18,10 +18,10 @@ export const getNextSectionOrder = async (pageId: string): Promise<number> => {
     .limit(1);
 
   if (!lastSection) {
-    return 10; // Start from 10 to allow insertion
+    return 1; // Start from 1
   }
 
-  return lastSection.order + 10;
+  return lastSection.order + 1;
 };
 
 /**

@@ -6,6 +6,7 @@ import { StatusEnum } from "../Website/Website.constant";
  * Defines the structure of a WebpageSection document
  */
 export interface IWebpageSection extends Document {
+  _id: Types.ObjectId;
   webpageId: Types.ObjectId;
   name: string;
   sectionType: string;
